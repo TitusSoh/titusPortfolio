@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jordan Lee — Computer Engineering</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,300&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #050810;
+  --surface: #0a0e1a;
+  --panel: #0f1422;
+  --border: rgba(100, 180, 255, 0.1);
+  --border-bright: rgba(100, 180, 255, 0.25);
+  --text: #d4e8ff;
+  --muted: #4a6a8a;
+  --dim: #2a3a50;
+  --green: #3dffa0;
+  --green-dim: rgba(61, 255, 160, 0.12);
+  --blue: #5ab4ff;
+  --blue-dim: rgba(90, 180, 255, 0.1);
+  --amber: #ffc85a;
+  --amber-dim: rgba(255, 200, 90, 0.1);
+  --red: #ff6b6b;
+  --mono: 'JetBrains Mono', monospace;
+  --display: 'Syne', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-x: hidden;
+  cursor: default;
+}
+
+/* Scanline texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Grid background */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(90,180,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(90,180,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── NAV / TITLEBAR ── */
+.titlebar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  background: rgba(5, 8, 16, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  height: 42px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.titlebar-left {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.tb-logo {
+  color: var(--green);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  font-size: 12px;
+}
+
+.tb-path {
+  color: var(--muted);
+  letter-spacing: 0.03em;
+}
+
+.tb-path span { color: var(--blue); }
+
+.titlebar-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.tb-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.tb-nav {
+  display: flex;
+  gap: 1.5rem;
+  list-style: none;
+}
+
+.tb-nav a {
+  color: var(--muted);
+  text-decoration: none;
+  letter-spacing: 0.05em;
+  transition: color 0.15s;
+  font-size: 11px;
+}
+
+.tb-nav a:hover { color: var(--blue); }
+
+/* ── HERO / BOOT SCREEN ── */
+.hero {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 5rem 3rem 3rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 4rem;
+}
+
+.hero-terminal {
+  flex: 1.2;
+}
+
+.terminal-window {
+  background: var(--panel);
+  border: 1px solid var(--border-bright);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 0 60px rgba(90, 180, 255, 0.05), 0 0 0 1px var(--border);
+}
+
+.terminal-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0.6rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.t-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+
+.t-dot.red   { background: #ff5f57; }
+.t-dot.amber { background: #ffbd2e; }
+.t-dot.green { background: #28c840; }
+
+.terminal-title {
+  margin-left: 0.5rem;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+}
+
+.terminal-body {
+  padding: 1.5rem;
+  font-size: 12px;
+  line-height: 2;
+}
+
+.t-line { display: flex; align-items: flex-start; gap: 0.5rem; }
+
+.t-prompt { color: var(--green); flex-shrink: 0; }
+.t-cmd    { color: var(--blue); }
+.t-out    { color: var(--muted); padding-left: 1.1rem; }
+.t-key    { color: var(--amber); }
+.t-val    { color: var(--text); }
+.t-comment{ color: var(--dim); font-style: italic; }
+
+.t-cursor {
+  display: inline-block;
+  width: 8px; height: 14px;
+  background: var(--green);
+  vertical-align: -2px;
+  animation: blink 1s step-end infinite;
+  margin-left: 2px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+.hero-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.hero-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hero-eyebrow::before {
+  content: '';
+  display: block;
+  width: 1.5rem; height: 1px;
+  background: var(--green);
+}
+
+.hero-name {
+  font-family: var(--display);
+  font-size: clamp(2.8rem, 5vw, 4.5rem);
+  font-weight: 800;
+  line-height: 1.05;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.hero-name .accent { color: var(--blue); }
+
+.hero-role {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  border-left: 2px solid var(--blue);
+  padding-left: 0.75rem;
+}
+
+.hero-bio {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 2;
+  max-width: 38ch;
+}
+
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.badge {
+  font-size: 10px;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--border-bright);
+  border-radius: 2px;
+  color: var(--blue);
+  letter-spacing: 0.08em;
+  background: var(--blue-dim);
+}
+
+.badge.green { border-color: rgba(61,255,160,0.25); color: var(--green); background: var(--green-dim); }
+.badge.amber { border-color: rgba(255,200,90,0.25);  color: var(--amber); background: var(--amber-dim); }
+
+.hero-cta {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 0.6rem 1.4rem;
+  border-radius: 3px;
+  text-decoration: none;
+  transition: all 0.15s;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-primary {
+  background: var(--green);
+  color: #050810;
+  font-weight: 700;
+}
+
+.btn-primary:hover { background: #5cffc0; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border-bright);
+}
+
+.btn-ghost:hover { color: var(--text); border-color: rgba(100,180,255,0.4); }
+
+/* ── SECTIONS ── */
+.section {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 5rem 3rem;
+}
+
+.section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1rem;
+}
+
+.sh-num {
+  font-size: 10px;
+  color: var(--green);
+  letter-spacing: 0.2em;
+}
+
+.sh-title {
+  font-family: var(--display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+.sh-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--border-bright), transparent);
+  margin-left: 1rem;
+}
+
+/* ── PROJECTS ── */
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.project-card {
+  background: var(--bg);
+  padding: 1.75rem;
+  transition: background 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.project-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: transparent;
+  transition: background 0.2s;
+}
+
+.project-card:hover { background: var(--panel); }
+.project-card:hover::before { background: var(--green); }
+
+.pc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.pc-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.pc-links {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.pc-link {
+  font-size: 10px;
+  color: var(--muted);
+  text-decoration: none;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--dim);
+  padding-bottom: 1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.pc-link:hover { color: var(--blue); border-color: var(--blue); }
+
+.pc-title {
+  font-family: var(--display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.4rem;
+}
+
+.pc-desc {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.85;
+  margin-bottom: 1.25rem;
+}
+
+.pc-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.stack-tag {
+  font-size: 10px;
+  padding: 0.2rem 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+}
+
+/* ── SKILLS / SYSTEM INFO ── */
+.sysinfo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.sys-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.sys-panel-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  font-size: 10px;
+  color: var(--green);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.sys-panel-body {
+  padding: 1rem;
+}
+
+.skill-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.skill-row:last-child { margin-bottom: 0; }
+
+.skill-name {
+  font-size: 11px;
+  color: var(--text);
+  min-width: 80px;
+}
+
+.skill-bar-wrap {
+  flex: 1;
+  height: 3px;
+  background: var(--dim);
+  border-radius: 2px;
+  margin: 0 0.75rem;
+  overflow: hidden;
+}
+
+.skill-bar {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--green);
+  animation: barGrow 1.2s ease both;
+  transform-origin: left;
+}
+
+@keyframes barGrow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+.skill-pct {
+  font-size: 10px;
+  color: var(--muted);
+  min-width: 28px;
+  text-align: right;
+}
+
+/* ── EDUCATION / TIMELINE ── */
+.timeline {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 7px; top: 6px; bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, var(--border-bright), transparent);
+}
+
+.tl-item {
+  position: relative;
+  margin-bottom: 2.5rem;
+}
+
+.tl-item::before {
+  content: '';
+  position: absolute;
+  left: -1.625rem; top: 6px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--green);
+  box-shadow: 0 0 8px rgba(61,255,160,0.5);
+}
+
+.tl-date {
+  font-size: 10px;
+  color: var(--green);
+  letter-spacing: 0.12em;
+  margin-bottom: 0.35rem;
+}
+
+.tl-title {
+  font-family: var(--display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.2rem;
+}
+
+.tl-sub {
+  font-size: 11px;
+  color: var(--blue);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.05em;
+}
+
+.tl-desc {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.85;
+  max-width: 55ch;
+}
+
+/* ── CONTACT ── */
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.contact-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.contact-panel-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+}
+
+.contact-panel-body {
+  padding: 1.5rem;
+}
+
+.contact-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  font-size: 11.5px;
+}
+
+.contact-row:last-child { margin-bottom: 0; }
+
+.cr-icon { color: var(--green); font-size: 13px; min-width: 14px; }
+.cr-label { color: var(--muted); min-width: 60px; }
+.cr-val { color: var(--blue); text-decoration: none; }
+.cr-val:hover { text-decoration: underline; }
+
+.contact-blurb {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 2;
+  margin-bottom: 1.5rem;
+}
+
+/* ── FOOTER ── */
+footer {
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid var(--border);
+  padding: 1.5rem 3rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: var(--dim);
+  letter-spacing: 0.08em;
+}
+
+footer span { color: var(--muted); }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hero-eyebrow { animation: fadeUp 0.5s ease both 0.1s; }
+.hero-name    { animation: fadeUp 0.6s ease both 0.2s; }
+.hero-role    { animation: fadeUp 0.6s ease both 0.3s; }
+.hero-bio     { animation: fadeUp 0.6s ease both 0.4s; }
+.hero-badges  { animation: fadeUp 0.6s ease both 0.5s; }
+.hero-cta     { animation: fadeUp 0.6s ease both 0.6s; }
+.terminal-window { animation: fadeUp 0.7s ease both 0.25s; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .titlebar { padding: 0 1rem; }
+  .tb-nav { display: none; }
+  .hero { flex-direction: column; padding: 5rem 1.5rem 3rem; gap: 2rem; }
+  .section { padding: 3.5rem 1.5rem; }
+  .contact-grid { grid-template-columns: 1fr; }
+  footer { flex-direction: column; gap: 0.5rem; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- TITLEBAR -->
+<nav class="titlebar">
+  <div class="titlebar-left">
+    <span class="tb-logo">~/jordan_lee</span>
+    <span class="tb-path">/<span>portfolio</span>/index.html</span>
+  </div>
+  <div class="titlebar-right">
+    <span class="tb-status">
+      <span class="status-dot"></span>
+      <span>open to opportunities</span>
+    </span>
+    <ul class="tb-nav">
+      <li><a href="#projects">projects</a></li>
+      <li><a href="#skills">skills</a></li>
+      <li><a href="#education">education</a></li>
+      <li><a href="#contact">contact</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-terminal">
+    <div class="terminal-window">
+      <div class="terminal-bar" style="justify-content: space-between;">
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+            <span style="font-size:12px;">📟</span>
+            <span class="terminal-title">Command Prompt</span>
+        </div>
+        <div style="display:flex; gap:0;">
+            <span style="padding: 0 10px; color:var(--muted); font-size:13px; cursor:pointer;">─</span>
+            <span style="padding: 0 10px; color:var(--muted); font-size:13px; cursor:pointer;">□</span>
+            <span style="padding: 0 10px; color:var(--muted); font-size:13px; cursor:pointer; background:rgba(255,0,0,0.15);">✕</span>
+        </div>
+        </div>
+      <div class="terminal-body">
+        <div class="t-line">
+          <span class="t-prompt">jordan@dev:~$</span>
+          <span class="t-cmd">cat whoami.json</span>
+        </div>
+        <div class="t-line t-out">
+          <pre style="color:var(--muted); font-family: inherit; font-size: 12px;">{
+  <span class="t-key">"name"</span>:    <span class="t-val">"Jordan Lee"</span>,
+  <span class="t-key">"degree"</span>:  <span class="t-val">"B.Eng Computer Engineering"</span>,
+  <span class="t-key">"year"</span>:    <span class="t-val">"Final Year"</span>,
+  <span class="t-key">"focus"</span>:   <span class="t-val">["Embedded Systems", "OS Dev"]</span>,
+  <span class="t-key">"status"</span>:  <span class="t-val">"Seeking SWE / CE Internship"</span>
+}</pre>
+        </div>
+        <div class="t-line" style="margin-top:0.5rem">
+          <span class="t-prompt">jordan@dev:~$</span>
+          <span class="t-cmd">git log --oneline -4</span>
+        </div>
+        <div class="t-line t-out"><span class="t-amber" style="color:var(--amber)">a3f91c2</span> <span style="color:var(--muted)">feat: RISC-V pipelined CPU in SystemVerilog</span></div>
+        <div class="t-line t-out"><span class="t-amber" style="color:var(--amber)">d7b04e1</span> <span style="color:var(--muted)">feat: custom RTOS scheduler for ARM Cortex-M4</span></div>
+        <div class="t-line t-out"><span class="t-amber" style="color:var(--amber)">9c21fa8</span> <span style="color:var(--muted)">fix: TCP/IP stack congestion window bug</span></div>
+        <div class="t-line t-out"><span class="t-amber" style="color:var(--amber)">4e88d3b</span> <span style="color:var(--muted)">init: neural net inference engine (C, SIMD)</span></div>
+        <div class="t-line" style="margin-top:0.5rem">
+          <span class="t-prompt">jordan@dev:~$</span>
+          <span class="t-cursor"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-info">
+    <p class="hero-eyebrow">Computer Engineering Student</p>
+    <h1 class="hero-name">Jordan<br><span class="accent">Lee.</span></h1>
+    <p class="hero-role">Hardware · Systems · Software</p>
+    <p class="hero-bio">
+      Final-year CE student obsessed with the space between hardware and software. I build things at the metal level — from RTL design to bare-metal firmware to kernel modules.
+    </p>
+    <div class="hero-badges">
+      <span class="badge green">GPA 3.87</span>
+      <span class="badge">C / C++</span>
+      <span class="badge">SystemVerilog</span>
+      <span class="badge">RISC-V</span>
+      <span class="badge amber">Dean's List</span>
+      <span class="badge">Linux Kernel</span>
+    </div>
+    <div class="hero-cta">
+      <a href="#projects" class="btn btn-primary">./run projects</a>
+      <a href="#contact" class="btn btn-ghost">get_in_touch()</a>
+    </div>
+  </div>
+</div>
+
+<!-- PROJECTS -->
+<section class="section" id="projects">
+  <div class="section-header">
+    <span class="sh-num">01.</span>
+    <h2 class="sh-title">Projects</h2>
+    <div class="sh-line"></div>
+  </div>
+  <div class="projects-grid">
+
+    <div class="project-card">
+      <div class="pc-header">
+        <span class="pc-icon">⚙️</span>
+        <div class="pc-links">
+          <a href="#" class="pc-link">github</a>
+          <a href="#" class="pc-link">report</a>
+        </div>
+      </div>
+      <h3 class="pc-title">RISC-V Out-of-Order CPU</h3>
+      <p class="pc-desc">5-stage pipelined processor with Tomasulo OoO execution, branch prediction (tournament), and a 32KB L1 cache. Synthesized on Xilinx Artix-7 FPGA at 85 MHz.</p>
+      <div class="pc-stack">
+        <span class="stack-tag">SystemVerilog</span>
+        <span class="stack-tag">Vivado</span>
+        <span class="stack-tag">FPGA</span>
+        <span class="stack-tag">RISC-V ISA</span>
+      </div>
+    </div>
+
+    <div class="project-card">
+      <div class="pc-header">
+        <span class="pc-icon">🖥️</span>
+        <div class="pc-links">
+          <a href="#" class="pc-link">github</a>
+          <a href="#" class="pc-link">demo</a>
+        </div>
+      </div>
+      <h3 class="pc-title">µKernel RTOS</h3>
+      <p class="pc-desc">Preemptive RTOS from scratch for ARM Cortex-M4. Features priority scheduler, mutex/semaphore primitives, memory protection units, and UART driver stack.</p>
+      <div class="pc-stack">
+        <span class="stack-tag">C</span>
+        <span class="stack-tag">ARM Assembly</span>
+        <span class="stack-tag">STM32</span>
+        <span class="stack-tag">CMSIS</span>
+      </div>
+    </div>
+
+    <div class="project-card">
+      <div class="pc-header">
+        <span class="pc-icon">🌐</span>
+        <div class="pc-links">
+          <a href="#" class="pc-link">github</a>
+        </div>
+      </div>
+      <h3 class="pc-title">Userspace TCP/IP Stack</h3>
+      <p class="pc-desc">Implemented Ethernet, ARP, IP, ICMP, TCP, and UDP protocols from scratch using raw Linux sockets (TUN/TAP). Passes 98% of RFC compliance tests.</p>
+      <div class="pc-stack">
+        <span class="stack-tag">C</span>
+        <span class="stack-tag">Linux Sockets</span>
+        <span class="stack-tag">Wireshark</span>
+        <span class="stack-tag">RFC 793</span>
+      </div>
+    </div>
+
+    <div class="project-card">
+      <div class="pc-header">
+        <span class="pc-icon">🤖</span>
+        <div class="pc-links">
+          <a href="#" class="pc-link">github</a>
+          <a href="#" class="pc-link">paper</a>
+        </div>
+      </div>
+      <h3 class="pc-title">SIMD Neural Net Engine</h3>
+      <p class="pc-desc">8-bit quantized inference engine for CNNs using AVX2 SIMD intrinsics. Achieves 3.4× speedup over baseline on ResNet-18, targeting edge deployment.</p>
+      <div class="pc-stack">
+        <span class="stack-tag">C</span>
+        <span class="stack-tag">AVX2</span>
+        <span class="stack-tag">Python</span>
+        <span class="stack-tag">Quantization</span>
+      </div>
+    </div>
+
+    <div class="project-card">
+      <div class="pc-header">
+        <span class="pc-icon">🔒</span>
+        <div class="pc-links">
+          <a href="#" class="pc-link">github</a>
+        </div>
+      </div>
+      <h3 class="pc-title">Hardware AES Accelerator</h3>
+      <p class="pc-desc">AES-128 encryption core with support for ECB/CBC/CTR modes. Fully pipelined, 1 block/cycle throughput. Verified with 10K+ NIST test vectors.</p>
+      <div class="pc-stack">
+        <span class="stack-tag">VHDL</span>
+        <span class="stack-tag">ModelSim</span>
+        <span class="stack-tag">FPGA</span>
+        <span class="stack-tag">Cryptography</span>
+      </div>
+    </div>
+
+    <div class="project-card">
+      <div class="pc-header">
+        <span class="pc-icon">📡</span>
+        <div class="pc-links">
+          <a href="#" class="pc-link">github</a>
+          <a href="#" class="pc-link">video</a>
+        </div>
+      </div>
+      <h3 class="pc-title">Autonomous Rover</h3>
+      <p class="pc-desc">Capstone: obstacle-avoiding rover with LiDAR SLAM, PID motor control, and Raspberry Pi + STM32 dual-MCU architecture. Navigates 50m course in &lt;90s.</p>
+      <div class="pc-stack">
+        <span class="stack-tag">C++</span>
+        <span class="stack-tag">ROS2</span>
+        <span class="stack-tag">Python</span>
+        <span class="stack-tag">LiDAR</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- SKILLS -->
+<section class="section" id="skills">
+  <div class="section-header">
+    <span class="sh-num">02.</span>
+    <h2 class="sh-title">Skills / System Info</h2>
+    <div class="sh-line"></div>
+  </div>
+  <div class="sysinfo">
+
+    <div class="sys-panel">
+      <div class="sys-panel-header">// languages</div>
+      <div class="sys-panel-body">
+        <div class="skill-row"><span class="skill-name">C / C++</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:95%"></div></div><span class="skill-pct">95%</span></div>
+        <div class="skill-row"><span class="skill-name">SystemVerilog</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:88%"></div></div><span class="skill-pct">88%</span></div>
+        <div class="skill-row"><span class="skill-name">Python</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:82%"></div></div><span class="skill-pct">82%</span></div>
+        <div class="skill-row"><span class="skill-name">ARM ASM</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:74%"></div></div><span class="skill-pct">74%</span></div>
+        <div class="skill-row"><span class="skill-name">Rust</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:55%"></div></div><span class="skill-pct">55%</span></div>
+      </div>
+    </div>
+
+    <div class="sys-panel">
+      <div class="sys-panel-header">// hardware & embedded</div>
+      <div class="sys-panel-body">
+        <div class="skill-row"><span class="skill-name">FPGA Design</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:90%"></div></div><span class="skill-pct">90%</span></div>
+        <div class="skill-row"><span class="skill-name">MCU Firmware</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:88%"></div></div><span class="skill-pct">88%</span></div>
+        <div class="skill-row"><span class="skill-name">PCB Design</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:70%"></div></div><span class="skill-pct">70%</span></div>
+        <div class="skill-row"><span class="skill-name">Signal Analysis</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:75%"></div></div><span class="skill-pct">75%</span></div>
+        <div class="skill-row"><span class="skill-name">I2C / SPI / UART</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:92%"></div></div><span class="skill-pct">92%</span></div>
+      </div>
+    </div>
+
+    <div class="sys-panel">
+      <div class="sys-panel-header">// systems & tools</div>
+      <div class="sys-panel-body">
+        <div class="skill-row"><span class="skill-name">Linux Kernel</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:78%"></div></div><span class="skill-pct">78%</span></div>
+        <div class="skill-row"><span class="skill-name">OS Internals</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:82%"></div></div><span class="skill-pct">82%</span></div>
+        <div class="skill-row"><span class="skill-name">Git / CI</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:90%"></div></div><span class="skill-pct">90%</span></div>
+        <div class="skill-row"><span class="skill-name">GDB / Valgrind</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:85%"></div></div><span class="skill-pct">85%</span></div>
+        <div class="skill-row"><span class="skill-name">Docker</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:68%"></div></div><span class="skill-pct">68%</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- EDUCATION -->
+<section class="section" id="education">
+  <div class="section-header">
+    <span class="sh-num">03.</span>
+    <h2 class="sh-title">Education &amp; Experience</h2>
+    <div class="sh-line"></div>
+  </div>
+  <div class="timeline">
+
+    <div class="tl-item">
+      <p class="tl-date">2022 – 2026 (expected)</p>
+      <h3 class="tl-title">B.Eng Computer Engineering</h3>
+      <p class="tl-sub">National University of Singapore</p>
+      <p class="tl-desc">GPA 3.87 / 4.0 · Dean's List (4 semesters) · Focus: Computer Architecture, Embedded Systems, VLSI Design, Operating Systems. Final Year Project: hardware-accelerated ML inference on custom RISC-V SoC.</p>
+    </div>
+
+    <div class="tl-item">
+      <p class="tl-date">May – Aug 2025</p>
+      <h3 class="tl-title">Silicon Engineering Intern</h3>
+      <p class="tl-sub">Broadcom Ltd. — Embedded Firmware Team</p>
+      <p class="tl-desc">Developed low-level NIC firmware in C for BCM57xxx chipsets. Optimized DMA descriptor ring logic, reducing latency by 12%. Wrote unit tests using an in-house simulation framework, achieving 89% coverage on critical paths.</p>
+    </div>
+
+    <div class="tl-item">
+      <p class="tl-date">Aug – Dec 2024</p>
+      <h3 class="tl-title">Undergraduate Research Assistant</h3>
+      <p class="tl-sub">NUS Computer Architecture Lab</p>
+      <p class="tl-desc">Researched cache coherence protocols for many-core processors. Implemented MESI and MESIF protocols in a gem5 simulator, publishing results at a departmental symposium.</p>
+    </div>
+
+    <div class="tl-item">
+      <p class="tl-date">2023</p>
+      <h3 class="tl-title">IEEE Hackathon — 1st Place</h3>
+      <p class="tl-sub">SUTD, Singapore</p>
+      <p class="tl-desc">Won first place for an IoT air quality sensor network with custom firmware, MQTT telemetry pipeline, and real-time visualization dashboard. Team of 4, built in 24 hours.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="section" id="contact">
+  <div class="section-header">
+    <span class="sh-num">04.</span>
+    <h2 class="sh-title">Contact</h2>
+    <div class="sh-line"></div>
+  </div>
+  <div class="contact-grid">
+    <div>
+      <p class="contact-blurb">
+        Looking for internship or new grad roles in embedded systems, silicon engineering, or low-level software. Always up to talk compilers, hardware, or operating systems.
+      </p>
+      <a href="mailto:jordan@example.com" class="btn btn-primary" style="display:inline-flex">send_email() →</a>
+    </div>
+    <div class="contact-panel">
+      <div class="contact-panel-bar">// links &amp; handles</div>
+      <div class="contact-panel-body">
+        <div class="contact-row">
+          <span class="cr-icon">@</span>
+          <span class="cr-label">Email</span>
+          <a href="mailto:jordan@example.com" class="cr-val">jordan@example.com</a>
+        </div>
+        <div class="contact-row">
+          <span class="cr-icon">◈</span>
+          <span class="cr-label">GitHub</span>
+          <a href="#" class="cr-val">github.com/jordanlee</a>
+        </div>
+        <div class="contact-row">
+          <span class="cr-icon">in</span>
+          <span class="cr-label">LinkedIn</span>
+          <a href="#" class="cr-val">linkedin.com/in/jordanlee</a>
+        </div>
+        <div class="contact-row">
+          <span class="cr-icon">📄</span>
+          <span class="cr-label">Resume</span>
+          <a href="#" class="cr-val">jordan_lee_cv.pdf</a>
+        </div>
+        <div class="contact-row">
+          <span class="cr-icon">📍</span>
+          <span class="cr-label">Location</span>
+          <span style="color:var(--muted)">Singapore · open to relocation</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>jordan_lee © 2025</span>
+  <span>built with html &amp; css · no frameworks · no excuses</span>
+</footer>
+
+</body>
+</html>
